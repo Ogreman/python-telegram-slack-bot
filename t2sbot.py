@@ -56,10 +56,14 @@ def echo_to_slack(bot):
                     response = requests.post(
                         SLACK_URL.format(
                             slack=SLACK_SUB, 
-                            token=SLACK_TOKEN, 
+                            token=SLACK_TOKEN,
                             channel=SLACK_CHANNEL
                         ), 
-                        data=message
+                        data="`{username} via Telegram:` {message}"
+                        .format(
+                            message=message,
+                            username=user
+                        )
                     )
                     if response.ok:
                         bot.sendMessage(chat_id=chat_id, text="Sent!")
