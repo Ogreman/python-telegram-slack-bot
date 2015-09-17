@@ -15,6 +15,7 @@ SLACK_TOKEN = os.environ['SLACK_TOKEN']
 SLACK_SUB = os.environ['SLACK_SUB']
 SLACK_URL = "https://{slack}.slack.com/services/hooks/slackbot?token={token}&channel=%23{channel}"
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL', 'chat')
+OTHER_BOT_URL = "{url}/register".format(url=os.environ['OTHER_BOT_URL'])
 
 
 def main():
@@ -51,6 +52,20 @@ def echo_to_slack(bot):
             if message.startswith('/channel'):
                 SLACK_CHANNEL = message.split(' ')[1].lower()
                 bot.sendMessage(chat_id=chat_id, text="Channel set to %s" % SLACK_CHANNEL)
+            elif message.startswith('/register'):
+                user_id = update.message.from_user.id
+                try:
+                    response = requests.post(
+                        OTHER_BOT_URL,
+                        data=dict(
+                            username=user,
+                            id=user_id
+                        )
+                    )
+                    if response.ok:
+                        bot.sendMessage(chat_id=chat_id, text="Registered with my pal.")
+                except requests.exceptions.ConnectionError:
+                    bot.sendMessage(chat_id=chat_id, text="Something went wrong...")
             else:
                 try:
                     response = requests.post(
