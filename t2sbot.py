@@ -13,13 +13,14 @@ SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL', 'chat')
 OTHER_BOT_REG = "{url}/register".format(url=os.environ['OTHER_BOT_URL'])
 OTHER_BOT_USR = "{url}/users".format(url=os.environ['OTHER_BOT_URL'])
 USER_NAMES = []
+FORMAT = "%(asctime)-15s: %(levelname)s: %(message)s"
+
+
+logging.basicConfig(format=FORMAT, filename="t2s.log", level=logging.INFO)
 
 
 def main():
     global LAST_UPDATE_ID
-
-    logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # Telegram Bot Authorization TELEGRAM_TOKEN
     bot = telegram.Bot(TELEGRAM_TOKEN)
@@ -32,7 +33,10 @@ def main():
         LAST_UPDATE_ID = None
 
     while True:
-        echo_to_slack(bot)
+        try:
+            echo_to_slack(bot)
+        except Exception as e:
+            logging.exception('Unhandled exception: %s', str(e))
         time.sleep(0.4)
 
 
@@ -44,7 +48,7 @@ def echo_to_slack(bot):
     try:
         USER_NAMES = requests.get(OTHER_BOT_USR).json().get('users', [])
     except requests.exceptions.ConnectionError:
-        pass
+        logging.error('Failed to connect to: %s', OTHER_BOT_USR)
 
     # Request updates after the last updated_id
     for update in bot.getUpdates(offset=LAST_UPDATE_ID, timeout=10):
@@ -67,8 +71,10 @@ def echo_to_slack(bot):
                         )
                     )
                     if response.ok:
+                        logging.info('User registered: %s', user)
                         bot.sendMessage(chat_id=chat_id, text="Registered with my pal.")
                 except requests.exceptions.ConnectionError:
+                    logging.error('Failed to connect to: %s', OTHER_BOT_REG)
                     bot.sendMessage(chat_id=chat_id, text="Something went wrong...")
             elif user in USER_NAMES:
                 try:
@@ -87,8 +93,10 @@ def echo_to_slack(bot):
                     if response.ok:
                         bot.sendMessage(chat_id=chat_id, text="Sent!")
                 except requests.exceptions.ConnectionError:
+                    logging.error('Failed to connect to: %s', SLACK_URL)
                     bot.sendMessage(chat_id=chat_id, text="Something went wrong...")
-            else:
+            elif user not in USER_NAMES:
+                logging.error('Unregistered user: %s', user)
                 bot.sendMessage(chat_id=chat_id, text="Register first...")
 
             # Updates global offset to get the new updates
