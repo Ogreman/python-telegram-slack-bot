@@ -27,21 +27,17 @@ def push(branch="master"):
         local("git push %s %s" % (env.hosts[0], branch))
 
 
-def prepare(branch="_dummy", stash=True):
+def prepare(branch="_dummy"):
     with cd(project_path):
-        if stash:
-            run("git stash")
         with settings(warn_only=True):
             result = run("git checkout -b %s" % branch)
         if result.failed:
             run("git checkout %s" % branch)
 
 
-def finalise(branch="master", stash=True):
+def finalise(branch="master"):
     with cd(project_path):
         run("git checkout %s" % branch)
-        if stash:
-            run("git stash pop")
 
 
 def clean(branch="_dummy"):
@@ -88,9 +84,9 @@ def new():
     kill()
     mkdir()
     initgit()
-    prepare(stash=False)
+    prepare()
     push()
-    finalise(stash=False)
+    finalise()
     clean()
     scppa()
     installdeps()
