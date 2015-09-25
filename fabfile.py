@@ -80,6 +80,11 @@ def installdeps():
             run("pip install -r requirements.txt")
 
 
+def logs():
+    with cd(project_path):
+        return run("tail t2s.log")
+
+
 def new():
     kill()
     mkdir()
