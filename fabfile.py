@@ -27,26 +27,30 @@ def start():
 
 
 def commit(words):
-    local("git add -u && git commit -m '%s'" % words)
+    with settings(warn_only=True):
+        local("git add -u && git commit -m '%s'" % words)
 
 
 def push(branch="master"):
-    local("git push %s %s" % (env.hosts[0], branch))
+    with settings(warn_only=True):
+        local("git push %s %s" % (env.hosts[0], branch))
 
 
-def prepare(branch="_dummy"):
+def prepare(branch="_dummy", stash=True):
     with cd(env.REMOTE_PROJECT_PATH):
-        run("git stash")
+        if stash:
+            run("git stash")
         with settings(warn_only=True):
             result = run("git checkout -b %s" % branch)
         if result.failed:
             run("git checkout %s" % branch)
 
 
-def finalise(branch="master"):
+def finalise(branch="master", stash=True):
     with cd(env.REMOTE_PROJECT_PATH):
         run("git checkout %s" % branch)
-        run("git stash pop")
+        if stash:
+            run("git stash pop")
 
 
 def clean(branch="_dummy"):
@@ -64,6 +68,48 @@ def kill():
 
 def running():
     run("ps aux | grep t2s | grep -v grep | awk '{print $2}'")
+
+
+def rmdirs(prompt=True):
+    if not prompt:
+        run("rm -rf %s" % env.REMOTE_PROJECT_PATH)
+        return
+    if confirm("Delete everything?"):
+        run("rm -rf %s" % env.REMOTE_PROJECT_PATH)
+
+
+def initgit():
+    with cd(env.REMOTE_PROJECT_PATH):
+        run("git init")
+
+
+def scppa():
+    local("scp %s raffers:/home/james/projects/t2s/" % postactivate)
+
+
+def installdeps():
+    with settings(warn_only=True):
+        with cd(env.REMOTE_PROJECT_PATH):
+            run("pip install -r requirements.txt")
+
+
+def new():
+    kill()
+    mkdir()
+    initgit()
+    prepare(stash=False)
+    push()
+    finalise(stash=False)
+    clean()
+    scppa()
+    installdeps()
+    start()
+
+
+def refresh():
+    kill()
+    rmdirs(prompt=False)
+    new()
 
 
 def deploy(m):
